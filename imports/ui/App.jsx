@@ -1,22 +1,45 @@
-import React from 'react';
-import { Hello } from './Hello.jsx';
-import { Info } from './Info.jsx';
+import { Meteor } from 'meteor/meteor';
+import React, {useState, Fragment} from 'react';
+import { useTracker } from 'meteor/react-meteor-data';
 import { Task } from './Task.jsx';
+import { TasksCollection } from '../api/TasksCollection.js';
+import { TaskForm } from './TaskForm.jsx';
+import { LoginForm } from './LoginForm.jsx';
 
-const tasks = [
-  {_id: 1, text: 'First Task'},
-  {_id: 2, text: 'Second Task'},
-  {_id: 3, text: 'Third Task'},
-]
+export const App = () => {
+  const user = useTracker(() => Meteor.user());
+  const userFilter = user ? {userId: user._id} : {};
 
-export const App = () => (
-  <div>
-    <h1>Welcome to Meteor!</h1>
-    <Hello/>
-    <Info/>
-    <h2>Task List</h2>
-    <ul>
-      { tasks.map(task => <Task key={ task._id } task={ task }></Task>) }
-    </ul>
-  </div>
-);
+  const tasks = useTracker(() => {
+    if (!user) {
+      return [];
+    }
+    return TasksCollection.find(userFilter, { sort: { createdAt: -1 } }).fetch()
+  });
+
+  const logout = () => Meteor.logout();
+
+  return (
+    <div>
+      <h1>Welcome to Meteor</h1>
+
+      { user ? (
+        <Fragment>
+          <div onClick={logout}>
+            {user.username} Logout
+          </div>
+          <TaskForm user={user}/>
+
+          <ul>
+          { tasks.map(task => <Task key={ task._id } task={ task }></Task>) }
+          </ul>
+        </Fragment>
+      ) : (
+        <LoginForm />
+      )
+      }
+
+      
+    </div>
+  );
+}
